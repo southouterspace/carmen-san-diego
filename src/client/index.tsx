@@ -12,17 +12,42 @@ import type { LegacyRef } from "react";
 // Chat component
 import { Chat } from "./components/Chat";
 
+// Users icon component
+function UsersIcon({ className }: { className?: string }) {
+	return (
+		<svg
+			className={className}
+			xmlns="http://www.w3.org/2000/svg"
+			width="20"
+			height="20"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
+			<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+			<circle cx="9" cy="7" r="4" />
+			<path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+			<path d="M16 3.13a4 4 0 0 1 0 7.75" />
+		</svg>
+	);
+}
+
+// Convert lat/lng to phi/theta angles for the globe
+function locationToAngles(lat: number, lng: number): [number, number] {
+	return [Math.PI - ((lng * Math.PI) / 180 - Math.PI / 2), (lat * Math.PI) / 180];
+}
+
 function App() {
 	// A reference to the canvas element where we'll render the globe
 	const canvasRef = useRef<HTMLCanvasElement>();
 	// The number of markers we're currently displaying
 	const [counter, setCounter] = useState(0);
-	// The user's own coordinates
+	// The user's own coordinates (kept for globe focus)
 	const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
 	// A map of marker IDs to their positions
-	// Note that we use a ref because the globe's `onRender` callback
-	// is called on every animation frame, and we don't want to re-render
-	// the component on every frame.
 	const positions = useRef<
 		Map<
 			string,
@@ -37,32 +62,28 @@ function App() {
 		room: "default",
 		party: "globe",
 		onMessage(evt) {
-			const message = JSON.parse(evt.data as string) as OutgoingMessage;
+			let message: OutgoingMessage;
+			try {
+				message = JSON.parse(evt.data as string) as OutgoingMessage;
+			} catch (error) {
+				console.error("Failed to parse message:", error);
+				return;
+			}
 			if (message.type === "add-marker") {
-				// Add the marker to our map
 				positions.current.set(message.position.id, {
 					location: [message.position.lat, message.position.lng],
 					size: message.position.id === socket.id ? 0.1 : 0.05,
 				});
-				// Save own coordinates
 				if (message.position.id === socket.id) {
 					setMyCoords({ lat: message.position.lat, lng: message.position.lng });
 				}
-				// Update the counter
 				setCounter((c) => c + 1);
 			} else {
-				// Remove the marker from our map
 				positions.current.delete(message.id);
-				// Update the counter
 				setCounter((c) => c - 1);
 			}
 		},
 	});
-
-	// Convert lat/lng to phi/theta angles for the globe
-	const locationToAngles = (lat: number, lng: number): [number, number] => {
-		return [Math.PI - ((lng * Math.PI) / 180 - Math.PI / 2), (lat * Math.PI) / 180];
-	};
 
 	// Refs for globe rotation and drag state
 	const focusRef = useRef<[number, number]>([0, 0]);
@@ -77,15 +98,19 @@ function App() {
 	}, [myCoords]);
 
 	useEffect(() => {
-		const canvas = canvasRef.current as HTMLCanvasElement;
+		const canvas = canvasRef.current;
+		if (!canvas) {
+			return;
+		}
+
 		let currentPhi = 0;
 		let currentTheta = 0;
 		const doublePi = Math.PI * 2;
 
 		const globe = createGlobe(canvas, {
 			devicePixelRatio: 2,
-			width: 400 * 2,
-			height: 400 * 2,
+			width: 300 * 2,
+			height: 300 * 2,
 			phi: 0,
 			theta: 0,
 			dark: 1,
@@ -98,19 +123,15 @@ function App() {
 			markers: [],
 			opacity: 0.7,
 			onRender: (state) => {
-				// Called on every animation frame.
 				state.markers = [...positions.current.values()];
-
 				state.phi = currentPhi;
 				state.theta = currentTheta;
 
-				// Smooth rotation to focus point (when not dragging)
 				if (pointerInteracting.current === null) {
 					const [focusPhi, focusTheta] = focusRef.current;
 					const distPositive = (focusPhi - currentPhi + doublePi) % doublePi;
 					const distNegative = (currentPhi - focusPhi + doublePi) % doublePi;
 
-					// Rotate in the shortest direction
 					if (distPositive < distNegative) {
 						currentPhi += distPositive * 0.08;
 					} else {
@@ -118,14 +139,12 @@ function App() {
 					}
 					currentTheta = currentTheta * 0.92 + focusTheta * 0.08;
 
-					// Apply drag momentum
 					currentPhi += pointerInteractionMovement.current;
 					pointerInteractionMovement.current *= 0.95;
 				}
 			},
 		});
 
-		// Drag handlers
 		const onPointerDown = (e: PointerEvent) => {
 			pointerInteracting.current = e.clientX;
 			canvas.style.cursor = "grabbing";
@@ -153,35 +172,31 @@ function App() {
 
 		return () => {
 			globe.destroy();
-			canvas.removeEventListener("pointerdown", onPointerDown);
-			canvas.removeEventListener("pointerup", onPointerUp);
-			canvas.removeEventListener("pointerout", onPointerUp);
-			canvas.removeEventListener("pointermove", onPointerMove);
+			if (canvas) {
+				canvas.removeEventListener("pointerdown", onPointerDown);
+				canvas.removeEventListener("pointerup", onPointerUp);
+				canvas.removeEventListener("pointerout", onPointerUp);
+				canvas.removeEventListener("pointermove", onPointerMove);
+			}
 		};
 	}, []);
 
 	return (
-		<div className="App">
-			<h1>Earth</h1>
-			{counter !== 0 ? (
-				<p>
-					<b>{counter}</b> {counter === 1 ? "person" : "people"} connected.
-				</p>
-			) : (
-				<p>&nbsp;</p>
-			)}
+		<div className="min-h-screen bg-zinc-950 text-zinc-100 pb-24">
+			{/* Fixed globe in background */}
+			<div className="fixed inset-0 flex items-center justify-center pointer-events-none opacity-30">
+				<canvas
+					ref={canvasRef as LegacyRef<HTMLCanvasElement>}
+					className="pointer-events-auto"
+					style={{ width: 300, height: 300, aspectRatio: 1 }}
+				/>
+			</div>
 
-			{/* The canvas where we'll render the globe */}
-			<canvas
-				ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-				style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
-			/>
-
-			{myCoords && (
-				<p>
-					Your location: {myCoords.lat.toFixed(4)}, {myCoords.lng.toFixed(4)}
-				</p>
-			)}
+			{/* Users count - top right */}
+			<div className="fixed top-4 right-4 flex items-center gap-2 bg-zinc-900/80 backdrop-blur-sm px-3 py-2 rounded-full z-10">
+				<UsersIcon className="text-red-500" />
+				<span className="text-sm font-medium text-zinc-300">{counter}</span>
+			</div>
 
 			{/* Chat component */}
 			<Chat />
