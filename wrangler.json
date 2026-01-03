@@ -4,8 +4,16 @@
 	"name": "carmen-san-diego",
 	"migrations": [
 		{
-			"new_sqlite_classes": ["Globe"],
+			"new_sqlite_classes": [
+				"Globe"
+			],
 			"tag": "v1"
+		},
+		{
+			"new_sqlite_classes": [
+				"Chat"
+			],
+			"tag": "v2"
 		}
 	],
 	"assets": {
@@ -19,9 +27,20 @@
 			{
 				"class_name": "Globe",
 				"name": "Globe"
+			},
+			{
+				"class_name": "Chat",
+				"name": "Chat"
 			}
 		]
 	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "carmen-chat-db",
+			"database_id": "37c34477-01d7-4a3b-9c66-6b6d2b275b0a"
+		}
+	],
 	"observability": {
 		"enabled": true
 	},

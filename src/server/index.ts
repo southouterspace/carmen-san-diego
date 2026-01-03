@@ -3,6 +3,9 @@ import { routePartykitRequest, Server } from "partyserver";
 import type { OutgoingMessage, Position } from "../shared";
 import type { Connection, ConnectionContext } from "partyserver";
 
+// Export Chat Durable Object class
+export { Chat } from "./chat";
+
 // This is the state that we'll store on each connection
 type ConnectionState = {
 	position: Position;

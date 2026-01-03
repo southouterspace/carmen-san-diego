@@ -9,6 +9,9 @@ import usePartySocket from "partysocket/react";
 import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
 
+// Chat component
+import { Chat } from "./components/Chat";
+
 function App() {
 	// A reference to the canvas element where we'll render the globe
 	const canvasRef = useRef<HTMLCanvasElement>();
@@ -87,7 +90,7 @@ function App() {
 			theta: 0,
 			dark: 1,
 			diffuse: 0.8,
-			mapSamples: 16000,
+			mapSamples: 60000,
 			mapBrightness: 6,
 			baseColor: [0.3, 0.3, 0.3],
 			markerColor: [0.8, 0.1, 0.1],
@@ -159,7 +162,7 @@ function App() {
 
 	return (
 		<div className="App">
-			<h1>Where in the world is Carmen San Diego?</h1>
+			<h1>Earth</h1>
 			{counter !== 0 ? (
 				<p>
 					<b>{counter}</b> {counter === 1 ? "person" : "people"} connected.
@@ -179,6 +182,9 @@ function App() {
 					Your location: {myCoords.lat.toFixed(4)}, {myCoords.lng.toFixed(4)}
 				</p>
 			)}
+
+			{/* Chat component */}
+			<Chat />
 		</div>
 	);
 }
