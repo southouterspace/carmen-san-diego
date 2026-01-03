@@ -162,9 +162,10 @@ export function Chat() {
 				} satisfies ChatIncomingMessage),
 			);
 			setInputValue("");
-			// Reset textarea height
+			// Reset textarea height and keep focus
 			if (textareaRef.current) {
 				textareaRef.current.style.height = "auto";
+				textareaRef.current.focus();
 			}
 		}
 	};
