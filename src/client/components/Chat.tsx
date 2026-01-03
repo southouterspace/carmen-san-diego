@@ -181,14 +181,15 @@ export function Chat() {
 			{/* Messages area - fixed height, scrollable, anchored to bottom */}
 			<div
 				ref={messagesContainerRef}
-				className="fixed inset-x-0 bottom-20 top-0 overflow-y-auto z-10"
+				className="absolute inset-x-0 top-0 overflow-y-auto z-10"
 				style={{
+					bottom: "4.5rem",
 					maskImage: "linear-gradient(to bottom, transparent 0%, black 15%)",
 					WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 15%)",
 				}}
 			>
 				<div className="min-h-full flex flex-col justify-end">
-					<div className="max-w-2xl mx-auto w-full px-4 py-4 space-y-3">
+					<div className="max-w-2xl mx-auto w-full px-3 sm:px-4 py-4 space-y-3">
 				{messages.length === 0 ? (
 					<div className="text-center text-zinc-500 py-8">
 						No messages yet. Start the investigation!
@@ -242,7 +243,7 @@ export function Chat() {
 			</div>
 
 			{/* Fixed input at bottom - shadcn input-group style */}
-			<div className="fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-sm p-4">
+			<div className="fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-sm px-3 py-3 sm:p-4 safe-area-bottom">
 				<form
 					onSubmit={handleSubmit}
 					className="max-w-2xl mx-auto"
@@ -250,7 +251,7 @@ export function Chat() {
 					<div className="relative bg-zinc-900 rounded-xl focus-within:ring-1 focus-within:ring-zinc-700">
 						<textarea
 							ref={textareaRef}
-							className="w-full bg-transparent text-zinc-100 placeholder-zinc-500 text-sm px-4 py-3 pr-12 resize-none focus:outline-none rounded-xl"
+							className="w-full bg-transparent text-zinc-100 placeholder-zinc-500 text-base px-4 py-3 pr-12 resize-none focus:outline-none rounded-xl"
 							placeholder={
 								username
 									? `Message as ${username}...`
