@@ -83,7 +83,7 @@ function App() {
 	return (
 		<div className="fixed inset-0 bg-zinc-950 text-zinc-100 overflow-hidden">
 			{/* Users count - top right */}
-			<div className="absolute top-4 right-4 z-10">
+			<div className="absolute top-4 right-4 z-20">
 				<button
 					onClick={togglePopover}
 					className="flex items-center gap-2 bg-zinc-900/80 backdrop-blur-sm px-3 py-2 rounded-full hover:bg-zinc-800/80 transition-colors cursor-pointer"
