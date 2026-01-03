@@ -56,12 +56,30 @@ function App() {
 		},
 	});
 
-	useEffect(() => {
-		// The angle of rotation of the globe
-		// We'll update this on every frame to make the globe spin
-		let phi = 0;
+	// Convert lat/lng to phi/theta angles for the globe
+	const locationToAngles = (lat: number, lng: number): [number, number] => {
+		return [Math.PI - ((lng * Math.PI) / 180 - Math.PI / 2), (lat * Math.PI) / 180];
+	};
 
-		const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
+	// Refs for globe rotation and drag state
+	const focusRef = useRef<[number, number]>([0, 0]);
+	const pointerInteracting = useRef<number | null>(null);
+	const pointerInteractionMovement = useRef(0);
+
+	// Update focus point when user coordinates are received
+	useEffect(() => {
+		if (myCoords) {
+			focusRef.current = locationToAngles(myCoords.lat, myCoords.lng);
+		}
+	}, [myCoords]);
+
+	useEffect(() => {
+		const canvas = canvasRef.current as HTMLCanvasElement;
+		let currentPhi = 0;
+		let currentTheta = 0;
+		const doublePi = Math.PI * 2;
+
+		const globe = createGlobe(canvas, {
 			devicePixelRatio: 2,
 			width: 400 * 2,
 			height: 400 * 2,
@@ -78,19 +96,64 @@ function App() {
 			opacity: 0.7,
 			onRender: (state) => {
 				// Called on every animation frame.
-				// `state` will be an empty object, return updated params.
-
-				// Get the current positions from our map
 				state.markers = [...positions.current.values()];
 
-				// Rotate the globe
-				state.phi = phi;
-				phi += 0.01;
+				state.phi = currentPhi;
+				state.theta = currentTheta;
+
+				// Smooth rotation to focus point (when not dragging)
+				if (pointerInteracting.current === null) {
+					const [focusPhi, focusTheta] = focusRef.current;
+					const distPositive = (focusPhi - currentPhi + doublePi) % doublePi;
+					const distNegative = (currentPhi - focusPhi + doublePi) % doublePi;
+
+					// Rotate in the shortest direction
+					if (distPositive < distNegative) {
+						currentPhi += distPositive * 0.08;
+					} else {
+						currentPhi -= distNegative * 0.08;
+					}
+					currentTheta = currentTheta * 0.92 + focusTheta * 0.08;
+
+					// Apply drag momentum
+					currentPhi += pointerInteractionMovement.current;
+					pointerInteractionMovement.current *= 0.95;
+				}
 			},
 		});
 
+		// Drag handlers
+		const onPointerDown = (e: PointerEvent) => {
+			pointerInteracting.current = e.clientX;
+			canvas.style.cursor = "grabbing";
+		};
+
+		const onPointerUp = () => {
+			pointerInteracting.current = null;
+			canvas.style.cursor = "grab";
+		};
+
+		const onPointerMove = (e: PointerEvent) => {
+			if (pointerInteracting.current !== null) {
+				const delta = e.clientX - pointerInteracting.current;
+				pointerInteractionMovement.current = delta / 100;
+				pointerInteracting.current = e.clientX;
+				currentPhi += delta / 100;
+			}
+		};
+
+		canvas.style.cursor = "grab";
+		canvas.addEventListener("pointerdown", onPointerDown);
+		canvas.addEventListener("pointerup", onPointerUp);
+		canvas.addEventListener("pointerout", onPointerUp);
+		canvas.addEventListener("pointermove", onPointerMove);
+
 		return () => {
 			globe.destroy();
+			canvas.removeEventListener("pointerdown", onPointerDown);
+			canvas.removeEventListener("pointerup", onPointerUp);
+			canvas.removeEventListener("pointerout", onPointerUp);
+			canvas.removeEventListener("pointermove", onPointerMove);
 		};
 	}, []);
 
