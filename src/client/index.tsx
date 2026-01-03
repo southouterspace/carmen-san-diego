@@ -14,6 +14,8 @@ function App() {
 	const canvasRef = useRef<HTMLCanvasElement>();
 	// The number of markers we're currently displaying
 	const [counter, setCounter] = useState(0);
+	// The user's own coordinates
+	const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
 	// A map of marker IDs to their positions
 	// Note that we use a ref because the globe's `onRender` callback
 	// is called on every animation frame, and we don't want to re-render
@@ -39,6 +41,10 @@ function App() {
 					location: [message.position.lat, message.position.lng],
 					size: message.position.id === socket.id ? 0.1 : 0.05,
 				});
+				// Save own coordinates
+				if (message.position.id === socket.id) {
+					setMyCoords({ lat: message.position.lat, lng: message.position.lng });
+				}
 				// Update the counter
 				setCounter((c) => c + 1);
 			} else {
@@ -105,12 +111,11 @@ function App() {
 				style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
 			/>
 
-			{/* Let's give some credit */}
-			<p>
-				Powered by <a href="https://cobe.vercel.app/">🌏 Cobe</a>,{" "}
-				<a href="https://www.npmjs.com/package/phenomenon">Phenomenon</a> and{" "}
-				<a href="https://npmjs.com/package/partyserver/">🎈 PartyServer</a>
-			</p>
+			{myCoords && (
+				<p>
+					Your location: {myCoords.lat.toFixed(4)}, {myCoords.lng.toFixed(4)}
+				</p>
+			)}
 		</div>
 	);
 }
