@@ -1,6 +1,6 @@
 import "./styles.css";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import usePartySocket from "partysocket/react";
 
@@ -9,6 +9,15 @@ import type { OutgoingMessage } from "../shared";
 
 // Chat component
 import { Chat } from "./components/Chat";
+
+// Online users popover
+import { OnlineUsersPopover } from "./components/OnlineUsersPopover";
+
+// Type for tracking online users
+type OnlineUser = {
+	id: string;
+	username: string;
+};
 
 // Users icon component
 function UsersIcon({ className }: { className?: string }) {
@@ -34,7 +43,8 @@ function UsersIcon({ className }: { className?: string }) {
 }
 
 function App() {
-	const [counter, setCounter] = useState(0);
+	const [users, setUsers] = useState<OnlineUser[]>([]);
+	const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
 	// Connect to the PartyServer server for user count
 	usePartySocket({
@@ -49,19 +59,45 @@ function App() {
 				return;
 			}
 			if (message.type === "add-marker") {
-				setCounter((c) => c + 1);
+				setUsers((prev) => {
+					// Avoid duplicates
+					if (prev.some((u) => u.id === message.position.id)) {
+						return prev;
+					}
+					return [...prev, { id: message.position.id, username: message.position.username }];
+				});
 			} else {
-				setCounter((c) => c - 1);
+				setUsers((prev) => prev.filter((u) => u.id !== message.id));
 			}
 		},
 	});
 
+	const togglePopover = useCallback(() => {
+		setIsPopoverOpen((prev) => !prev);
+	}, []);
+
+	const closePopover = useCallback(() => {
+		setIsPopoverOpen(false);
+	}, []);
+
 	return (
 		<div className="fixed inset-0 bg-zinc-950 text-zinc-100 overflow-hidden">
 			{/* Users count - top right */}
-			<div className="absolute top-4 right-4 flex items-center gap-2 bg-zinc-900/80 backdrop-blur-sm px-3 py-2 rounded-full z-10">
-				<UsersIcon className="text-red-500" />
-				<span className="text-sm font-medium text-zinc-300">{counter}</span>
+			<div className="absolute top-4 right-4 z-10">
+				<button
+					onClick={togglePopover}
+					className="flex items-center gap-2 bg-zinc-900/80 backdrop-blur-sm px-3 py-2 rounded-full hover:bg-zinc-800/80 transition-colors cursor-pointer"
+					aria-label="Show online users"
+					aria-expanded={isPopoverOpen}
+				>
+					<UsersIcon className="text-red-500" />
+					<span className="text-sm font-medium text-zinc-300">{users.length}</span>
+				</button>
+				<OnlineUsersPopover
+					users={users}
+					isOpen={isPopoverOpen}
+					onClose={closePopover}
+				/>
 			</div>
 
 			{/* Chat component */}
