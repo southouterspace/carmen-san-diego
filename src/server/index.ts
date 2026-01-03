@@ -2,6 +2,7 @@ import { routePartykitRequest, Server } from "partyserver";
 
 import type { OutgoingMessage, Position } from "../shared";
 import type { Connection, ConnectionContext } from "partyserver";
+import { generateDetectiveName } from "./utils/nameGenerator";
 
 // Export Chat Durable Object class
 export { Chat } from "./chat";
@@ -9,12 +10,16 @@ export { Chat } from "./chat";
 // This is the state that we'll store on each connection
 type ConnectionState = {
 	position: Position;
+	username: string;
 };
 
 export class Globe extends Server {
 	onConnect(conn: Connection<ConnectionState>, ctx: ConnectionContext) {
 		// Whenever a fresh connection is made, we'll
 		// send the entire state to the new connection
+
+		// Generate a username for this connection
+		const username = generateDetectiveName();
 
 		// First, let's extract the position from the Cloudflare headers
 		const latitude = ctx.request.cf?.latitude as string | undefined;
@@ -27,10 +32,12 @@ export class Globe extends Server {
 			lat: parseFloat(latitude),
 			lng: parseFloat(longitude),
 			id: conn.id,
+			username,
 		};
 		// And save this on the connection's state
 		conn.setState({
 			position,
+			username,
 		});
 
 		// Now, let's send the entire state to the new connection
